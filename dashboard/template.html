@@ -1,0 +1,878 @@
+<title>Artist Views Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: an analyst's workbench. Controls stick to the top, then one column of evidence, widest panels for forecasts. */
+  :root {
+    --plane: #f3f4f6;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #6f6d68;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --line: rgba(11, 11, 11, 0.1);
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #eda100;
+    --s5: #e87ba4;
+    --s6: #008300;
+    --s7: #6250d6;
+    --s8: #e34948;
+    --muted-series: #b4b2a8;
+    --neg: #e34948;
+    --mid: #f0efec;
+    --pill: #e6eefa;
+    --font-ui: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --plane: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #a3a198;
+      --grid: #2c2c2a; --axis: #383835; --line: rgba(255, 255, 255, 0.1);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+      --muted-series: #5e5d57; --neg: #e66767; --mid: #383835; --pill: #1f3250;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --plane: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #a3a198;
+    --grid: #2c2c2a; --axis: #383835; --line: rgba(255, 255, 255, 0.1);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --muted-series: #5e5d57; --neg: #e66767; --mid: #383835; --pill: #1f3250;
+    color-scheme: dark;
+  }
+  body { background: var(--plane); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.45; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+  .wrap { max-width: 1240px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .bar-in { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding-block: 10px; }
+  .brand { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; white-space: nowrap; }
+  .field { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+  .field-label { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  select, .chip, .seg label { font: inherit; font-size: 14px; color: var(--ink); }
+  select { background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; padding: 5px 8px; font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: transparent; border: 1px solid var(--axis); border-radius: 999px; padding: 3px 11px; cursor: pointer; color: var(--ink-3); text-decoration: line-through; }
+  .chip[aria-pressed="true"] { background: var(--pill); border-color: var(--s1); color: var(--ink); text-decoration: none; }
+  :focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+
+  main { display: grid; gap: 20px; padding-block: 20px 40px; }
+  .intro { display: grid; gap: 4px; }
+  h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
+  .sub { margin: 0; max-width: 75ch; color: var(--ink-2); }
+
+  .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr)); }
+  .tile { display: grid; gap: 2px; align-content: start; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+  .tile-label { font-size: 13px; color: var(--ink-2); }
+  .tile-value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .tile-note { font-size: 13px; color: var(--ink-3); }
+
+  .section-title { margin: 12px 0 0; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .grid-2 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+  .card { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  .card h3 { margin: 0; font-size: 16px; font-weight: 600; text-wrap: balance; }
+  .note { margin: 0; max-width: 80ch; font-size: 13px; color: var(--ink-2); }
+  .note b { color: var(--ink); font-weight: 600; }
+
+  .chart { position: relative; min-width: 0; }
+  .chart svg { display: block; width: 100%; touch-action: pan-y; }
+  .chart text { font-family: var(--font-data); font-size: 11px; fill: var(--ink-3); }
+  .chart text.val { fill: var(--ink); font-weight: 500; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; padding-block-end: 6px; font-size: 12.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px; }
+  .legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+  .legend i.dash { height: 0; background: none !important; border-top: 2px dashed var(--ink-3); }
+  .tip { position: absolute; z-index: 3; min-width: 150px; background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16); padding: 6px 9px; font-size: 12.5px; pointer-events: none; }
+  .tip-title { color: var(--ink-2); }
+  .tip-row { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tip-row i { width: 8px; height: 8px; border-radius: 50%; }
+  .tip-row b { margin-inline-start: auto; padding-inline-start: 14px; font-family: var(--font-data); font-weight: 500; font-size: 12px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+  td { font-family: var(--font-data); font-size: 12.5px; }
+  th { font-weight: 600; font-size: 12.5px; color: var(--ink-2); vertical-align: bottom; }
+  th:first-child, td:first-child { text-align: left; font-family: var(--font-ui); font-size: 13.5px; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tr.is-peak td { font-weight: 600; background: var(--pill); }
+  tr.is-total td { font-weight: 600; border-top: 1px solid var(--axis); }
+  .tag { font-family: var(--font-ui); font-size: 11.5px; font-weight: 600; color: var(--ink-2); padding-inline-start: 6px; }
+  .heat td { text-align: center; color: var(--ink); }
+  .heat td:first-child { text-align: left; background: none !important; }
+  .heat th { text-align: center; }
+  .heat th:first-child { text-align: left; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px; }
+  .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 6px; overflow: hidden; }
+  .seg input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .seg label { padding: 4px 12px; cursor: pointer; color: var(--ink-2); }
+  .seg input:checked + label { background: var(--pill); color: var(--ink); font-weight: 600; }
+  .seg input:focus-visible + label { outline: 2px solid var(--s1); outline-offset: -2px; }
+  input[type="range"] { width: min(190px, 44vw); accent-color: var(--s1); }
+  .read { font-family: var(--font-data); font-size: 13px; }
+  .empty { padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  .foot { font-size: 13px; color: var(--ink-3); max-width: 85ch; margin: 0; }
+  @media (max-width: 560px) { .brand { width: 100%; } .field-weeks { flex-wrap: wrap; } }
+</style>
+
+<header class="bar">
+  <div class="wrap bar-in">
+    <span class="brand">Artist Views Lab</span>
+    <label class="field">
+      <span class="field-label">Artist</span>
+      <select id="artist"></select>
+    </label>
+    <div class="field field-weeks">
+      <span class="field-label">Weeks used</span>
+      <div class="chips" id="weeks" role="group" aria-label="Choose which weeks to include"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <div class="intro">
+      <h1 id="headline"></h1>
+      <p class="sub" id="takeaway"></p>
+    </div>
+
+    <p class="empty" id="empty" hidden>Turn on at least one week above to see the analysis.</p>
+
+    <div id="analysis" style="display: grid; gap: 20px;">
+      <section class="tiles" aria-label="Key figures">
+        <div class="tile"><span class="tile-label">Highest day</span><span class="tile-value" id="t-peak-day"></span><span class="tile-note" id="t-peak-note"></span></div>
+        <div class="tile"><span class="tile-label">Average weekly peak</span><span class="tile-value" id="t-peak"></span><span class="tile-note" id="t-peak-range"></span></div>
+        <div class="tile"><span class="tile-label">Monday to peak gain</span><span class="tile-value" id="t-gain"></span><span class="tile-note" id="t-gain-note"></span></div>
+        <div class="tile"><span class="tile-label">Forecast peak, recent-weighted</span><span class="tile-value" id="t-forecast"></span><span class="tile-note" id="t-forecast-note"></span></div>
+      </section>
+
+      <h2 class="section-title">The weekly pattern</h2>
+      <div class="grid-2">
+        <section class="card">
+          <h3>Views by day of the week</h3>
+          <p class="note">Gray lines are individual weeks and the blue line is their average. The axis starts above zero so the differences are visible.</p>
+          <div class="chart" id="c-weekday"></div>
+        </section>
+        <section class="card">
+          <h3>A typical week compared with its average</h3>
+          <p class="note">How far above or below its own week's average each day runs, averaged across the weeks used.</p>
+          <div class="chart" id="c-typical"></div>
+        </section>
+      </div>
+
+      <h2 class="section-title">The road to the peak</h2>
+      <section class="card">
+        <h3>What each day tells you about the week's peak</h3>
+        <p class="note" id="road-note"></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Day</th><th scope="col">Average views</th><th scope="col">% of peak</th><th scope="col">Gain to peak</th><th scope="col">Gain range</th><th scope="col">Prediction error</th><th scope="col">Error in views</th></tr></thead>
+            <tbody id="road-body"></tbody>
+          </table>
+        </div>
+        <p class="note">Prediction error tests each week in turn: it multiplies that day by the average gain from the other weeks, then compares the result with the real peak. A lower error means that day is a better early signal.</p>
+      </section>
+
+      <h2 class="section-title" id="forecast-title"></h2>
+      <section class="card">
+        <div class="controls">
+          <div class="field">
+            <span class="field-label">Average the past</span>
+            <div class="seg" role="radiogroup" aria-label="Number of past weeks">
+              <input type="radio" name="span" id="span-3" value="3" checked><label for="span-3">3 weeks</label>
+              <input type="radio" name="span" id="span-4" value="4"><label for="span-4">4 weeks</label>
+            </div>
+          </div>
+          <label class="field">
+            <span class="field-label">Conviction tilt</span>
+            <input type="range" id="tilt" min="1" max="3" step="0.1" value="1.5">
+            <span class="read" id="tilt-read"></span>
+          </label>
+        </div>
+        <p class="note" id="forecast-note"></p>
+        <div class="chart" id="c-forecast"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Day</th><th scope="col">Actual</th><th scope="col">Simple average</th><th scope="col">Recent-weighted</th><th scope="col">Pace-adjusted</th></tr></thead>
+            <tbody id="forecast-body"></tbody>
+          </table>
+        </div>
+        <p class="note">Simple average gives every past week equal weight. Recent-weighted makes each newer week count more, by the tilt you set. Pace-adjusted scales the recent-weighted forecast to match the days already reported this week.</p>
+      </section>
+
+      <section class="card">
+        <h3>How these forecasts would have done</h3>
+        <p class="note" id="backtest-note"></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Week tested</th><th scope="col">Past weeks used</th><th scope="col">Actual peak</th><th scope="col">Simple average</th><th scope="col">Recent-weighted</th><th scope="col">Pace from Monday</th></tr></thead>
+            <tbody id="backtest-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <h2 class="section-title">More cuts of the data</h2>
+      <section class="card">
+        <h3>Heatmap of each day against its week</h3>
+        <p class="note">Blue days ran above that week's average and red days ran below it. Consistent columns mean a reliable weekday pattern.</p>
+        <div class="table-wrap">
+          <table class="heat">
+            <thead id="heat-head"></thead>
+            <tbody id="heat-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="grid-2">
+        <section class="card">
+          <h3>Average change from the day before</h3>
+          <p class="note">Shows where the biggest daily moves happen across the week.</p>
+          <div class="chart" id="c-dod"></div>
+        </section>
+        <section class="card">
+          <h3>Weekly high, average and low</h3>
+          <p class="note">Shows whether the overall level is rising or falling. The axis starts above zero.</p>
+          <div class="chart" id="c-weekly"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h3>Every day in the data</h3>
+        <p class="note">Includes all reported days, even weeks switched off above. Dashed lines mark the average of each week used.</p>
+        <div class="chart" id="c-timeline"></div>
+      </section>
+
+      <h2 class="section-title">Compare artists</h2>
+      <div class="grid-2">
+        <section class="card">
+          <h3>Weekly shape by artist</h3>
+          <p class="note">Each artist's typical week as a percentage of their own weekly average, so different audience sizes compare fairly.</p>
+          <div class="chart" id="c-compare"></div>
+        </section>
+        <section class="card">
+          <h3>Artist summary</h3>
+          <p class="note">Swing is the gap between the highest and lowest day of a typical week. Peak variation shows how much weekly peaks differ, so lower is steadier.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Artist</th><th scope="col">Weeks</th><th scope="col">Daily average</th><th scope="col">Top day</th><th scope="col">Swing</th><th scope="col">Peak variation</th></tr></thead>
+              <tbody id="compare-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <p class="foot" id="foot"></p>
+  </main>
+</div>
+
+<script type="application/json" id="artist-data">__ARTIST_DATA__</script>
+<script>
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DAY_MS = 86400000;
+  const SLOTS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'].map((name) => `var(${name})`);
+  const artists = JSON.parse(document.getElementById('artist-data').textContent);
+  const state = {slug: artists[0].slug, off: {}, span: 3, tilt: 1.5};
+
+  const $ = (id) => document.getElementById(id);
+  const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
+  const sd = (values) => {
+    const center = mean(values);
+    return values.length < 2 ? 0 : Math.sqrt(values.reduce((sum, value) => sum + (value - center) ** 2, 0) / (values.length - 1));
+  };
+  const known = (values) => values.filter((value) => value !== null);
+  const toDate = (day) => new Date(`${day}T00:00:00Z`);
+  const toIso = (date) => date.toISOString().slice(0, 10);
+  const addDays = (day, count) => toIso(new Date(toDate(day).getTime() + count * DAY_MS));
+  const shortDate = (day) => toDate(day).toLocaleDateString('en-US', {month: 'short', day: 'numeric', timeZone: 'UTC'});
+  const millions = (value) => `${(value / 1e6).toFixed(2)}M`;
+  const whole = (value) => Math.round(value).toLocaleString('en-US');
+  const percent = (value, digits = 1) => `${(value * 100).toFixed(digits)}%`;
+  const signed = (value, digits = 1) => `${value >= 0 ? '+' : '−'}${Math.abs(value * 100).toFixed(digits)}%`;
+
+  function buildWeeks(days) {
+    const weeks = new Map();
+    days.forEach(({date, views}) => {
+      const index = (toDate(date).getUTCDay() + 6) % 7;
+      const start = addDays(date, -index);
+      if (!weeks.has(start)) weeks.set(start, {start, values: Array(7).fill(null)});
+      weeks.get(start).values[index] = views;
+    });
+    return [...weeks.values()].sort((a, b) => a.start.localeCompare(b.start)).map((week) => {
+      const count = known(week.values).length;
+      if (count < 7) return {...week, count};
+      const peak = Math.max(...week.values);
+      const low = Math.min(...week.values);
+      return {...week, count, average: mean(week.values), peak, low, peakDay: week.values.indexOf(peak), lowDay: week.values.indexOf(low)};
+    });
+  }
+
+  function dayStats(used) {
+    return DAYS.map((_, day) => {
+      const gains = used.map((week) => week.peak / week.values[day] - 1);
+      const errors = used.length < 2 ? [] : used.map((week, index) => {
+        const others = gains.filter((_, other) => other !== index);
+        const predicted = week.values[day] * (1 + mean(others));
+        return {share: Math.abs(predicted - week.peak) / week.peak, views: Math.abs(predicted - week.peak)};
+      });
+      return {
+        average: mean(used.map((week) => week.values[day])),
+        relative: mean(used.map((week) => week.values[day] / week.average - 1)),
+        ofPeak: mean(used.map((week) => week.values[day] / week.peak)),
+        gain: mean(gains),
+        gainLow: Math.min(...gains),
+        gainHigh: Math.max(...gains),
+        error: errors.length ? mean(errors.map((item) => item.share)) : null,
+        errorViews: errors.length ? mean(errors.map((item) => item.views)) : null,
+      };
+    });
+  }
+
+  const tiltWeights = (count, tilt) => {
+    const raw = Array.from({length: count}, (_, age) => tilt ** -age);
+    const total = raw.reduce((sum, value) => sum + value, 0);
+    return raw.map((value) => value / total);
+  };
+  const project = (history, weights) => DAYS.map((_, day) => history.reduce((sum, week, index) => sum + week.values[day] * weights[index], 0));
+  function paceAdjust(forecast, actual) {
+    const seen = actual.map((value, day) => (value === null ? null : day)).filter((day) => day !== null);
+    if (!seen.length) return null;
+    const scale = seen.reduce((sum, day) => sum + actual[day], 0) / seen.reduce((sum, day) => sum + forecast[day], 0);
+    return forecast.map((value, day) => (actual[day] === null ? value * scale : actual[day]));
+  }
+
+  function forecastWeek(history, tilt, actual) {
+    const simple = project(history, Array(history.length).fill(1 / history.length));
+    const weighted = project(history, tiltWeights(history.length, tilt));
+    return {simple, weighted, pace: paceAdjust(weighted, actual)};
+  }
+
+  function backtest(used, span, tilt) {
+    return used.slice(1).map((week, offset) => {
+      const history = used.slice(0, offset + 1).reverse().slice(0, span);
+      const mondayOnly = [week.values[0], null, null, null, null, null, null];
+      const result = forecastWeek(history, tilt, mondayOnly);
+      const peakOf = (values) => Math.max(...values);
+      return {
+        week,
+        pastWeeks: history.length,
+        simple: peakOf(result.simple),
+        weighted: peakOf(result.weighted),
+        pace: peakOf(result.pace),
+      };
+    });
+  }
+
+  function analyze(artist) {
+    const off = state.off[artist.slug] ?? new Set();
+    const weeks = buildWeeks(artist.days);
+    const full = weeks.filter((week) => week.count === 7);
+    const used = full.filter((week) => !off.has(week.start));
+    const last = weeks[weeks.length - 1];
+    const target = last.count < 7 ? last : {start: addDays(last.start, 7), values: Array(7).fill(null), count: 0};
+    const skipped = weeks.filter((week) => week.count < 7 && week.start !== target.start);
+    return {artist, weeks, full, used, target, skipped, stats: used.length ? dayStats(used) : null};
+  }
+
+  function niceTicks(low, high, count) {
+    const span = high - low || Math.abs(high) || 1;
+    const raw = span / count;
+    const power = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map((factor) => factor * power).find((value) => value >= raw);
+    const start = Math.floor(low / step) * step;
+    const end = Math.ceil(high / step) * step;
+    const ticks = [];
+    for (let value = start; value <= end + step / 2; value += step) ticks.push(Number(value.toFixed(10)));
+    return ticks;
+  }
+
+  const SVG = 'http://www.w3.org/2000/svg';
+  function shape(parent, tag, attributes = {}, text) {
+    const node = document.createElementNS(SVG, tag);
+    Object.entries(attributes).forEach(([name, value]) => {
+      if (name === 'style') node.style.cssText = value;
+      else node.setAttribute(name, value);
+    });
+    if (text !== undefined) node.textContent = text;
+    parent.append(node);
+    return node;
+  }
+
+  function startChart(el, height, label) {
+    el.replaceChildren();
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    const width = Math.max(el.clientWidth, 260);
+    const svg = shape(el, 'svg', {viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': label});
+    const tip = document.createElement('div');
+    tip.className = 'tip';
+    tip.hidden = true;
+    el.append(tip);
+    return {el, legend, svg, tip, width, height};
+  }
+
+  function addLegend(chart, items) {
+    items.forEach(({name, color, kind}) => {
+      const item = document.createElement('span');
+      const swatch = document.createElement('i');
+      if (kind) swatch.className = kind;
+      swatch.style.background = color;
+      const label = document.createElement('span');
+      label.textContent = name;
+      item.append(swatch, label);
+      chart.legend.append(item);
+    });
+    chart.el.prepend(chart.legend);
+  }
+
+  function showTip(chart, event, title, rows) {
+    const heading = document.createElement('div');
+    heading.className = 'tip-title';
+    heading.textContent = title;
+    chart.tip.replaceChildren(heading, ...rows.map((row) => {
+      const line = document.createElement('div');
+      line.className = 'tip-row';
+      if (row.color) {
+        const dot = document.createElement('i');
+        dot.style.background = row.color;
+        line.append(dot);
+      }
+      const name = document.createElement('span');
+      name.textContent = row.name;
+      const value = document.createElement('b');
+      value.textContent = row.value;
+      line.append(name, value);
+      return line;
+    }));
+    chart.tip.hidden = false;
+    const box = chart.el.getBoundingClientRect();
+    const x = event.clientX - box.left;
+    const y = event.clientY - box.top;
+    const wide = chart.tip.offsetWidth;
+    const left = x + 14 + wide > box.width ? x - 14 - wide : x + 14;
+    chart.tip.style.left = `${Math.max(0, left)}px`;
+    chart.tip.style.top = `${Math.max(0, y - chart.tip.offsetHeight - 10)}px`;
+  }
+
+  function lineChart(el, options) {
+    const {labels, series, height = 300, label, format = millions, axisFormat = format, tickFilter = () => true, tipTitle = (index) => labels[index]} = options;
+    const chart = startChart(el, height, label);
+    const legendItems = series.filter((item) => item.legend !== false).map((item) => ({name: item.name, color: item.color, kind: item.dashed ? 'dash' : item.line === false ? 'dot' : ''}));
+    if (legendItems.length > 1) addLegend(chart, legendItems);
+
+    const values = series.flatMap((item) => known(item.values));
+    const ticks = niceTicks(Math.min(...values), Math.max(...values), 5);
+    const margin = {top: 20, right: 14, bottom: 26};
+    const probe = shape(chart.svg, 'text');
+    margin.left = Math.ceil(Math.max(...ticks.map((tick) => {
+      probe.textContent = axisFormat(tick);
+      return probe.getComputedTextLength();
+    }))) + 12;
+    probe.remove();
+
+    const plotRight = chart.width - margin.right;
+    const plotBottom = height - margin.bottom;
+    const inset = labels.length > 20 ? 4 : 22;
+    const x = (index) => (labels.length === 1 ? (margin.left + plotRight) / 2 : margin.left + inset + (index * (plotRight - margin.left - inset * 2)) / (labels.length - 1));
+    const low = ticks[0];
+    const high = ticks[ticks.length - 1];
+    const y = (value) => plotBottom - ((value - low) / (high - low || 1)) * (plotBottom - margin.top);
+
+    ticks.forEach((tick) => {
+      shape(chart.svg, 'line', {x1: margin.left, x2: plotRight, y1: y(tick), y2: y(tick), style: 'stroke: var(--grid); stroke-width: 1'});
+      shape(chart.svg, 'text', {x: margin.left - 8, y: y(tick), dy: '0.32em', 'text-anchor': 'end'}, axisFormat(tick));
+    });
+    labels.forEach((text, index) => {
+      if (tickFilter(index)) shape(chart.svg, 'text', {x: x(index), y: height - 8, 'text-anchor': 'middle'}, text);
+    });
+
+    series.forEach((item) => {
+      if (item.line !== false) {
+        let path = '';
+        let open = false;
+        item.values.forEach((value, index) => {
+          if (value === null) { open = false; return; }
+          path += `${open ? 'L' : 'M'}${x(index)} ${y(value)}`;
+          open = true;
+        });
+        shape(chart.svg, 'path', {d: path, style: `fill: none; stroke: ${item.color}; stroke-width: ${item.width ?? 2}; stroke-linecap: round; stroke-linejoin: round;${item.dashed ? ' stroke-dasharray: 5 4;' : ''}`});
+      }
+      if (item.dots !== false) {
+        item.values.forEach((value, index) => {
+          if (value === null) return;
+          shape(chart.svg, 'circle', {cx: x(index), cy: y(value), r: item.dotSize ?? 4, style: `fill: ${item.color}; stroke: var(--surface); stroke-width: 2`});
+        });
+      }
+      if (item.labelExtremes) {
+        const present = known(item.values);
+        const top = item.values.indexOf(Math.max(...present));
+        const bottom = item.values.indexOf(Math.min(...present));
+        shape(chart.svg, 'text', {class: 'val', x: x(top), y: y(item.values[top]) - 10, 'text-anchor': 'middle'}, format(item.values[top]));
+        shape(chart.svg, 'text', {class: 'val', x: x(bottom), y: y(item.values[bottom]) + 18, 'text-anchor': 'middle'}, format(item.values[bottom]));
+      }
+    });
+
+    const rule = shape(chart.svg, 'line', {y1: margin.top, y2: plotBottom, visibility: 'hidden', style: 'stroke: var(--axis); stroke-width: 1'});
+    const hit = shape(chart.svg, 'rect', {x: margin.left, y: 0, width: plotRight - margin.left, height: plotBottom, style: 'fill: transparent'});
+    const hover = (event) => {
+      const box = chart.svg.getBoundingClientRect();
+      const pointer = ((event.clientX - box.left) / box.width) * chart.width;
+      let nearest = 0;
+      labels.forEach((_, index) => {
+        if (Math.abs(x(index) - pointer) < Math.abs(x(nearest) - pointer)) nearest = index;
+      });
+      rule.setAttribute('x1', x(nearest));
+      rule.setAttribute('x2', x(nearest));
+      rule.setAttribute('visibility', 'visible');
+      const rows = series.filter((item) => item.values[nearest] !== null && item.tip !== false)
+        .map((item) => ({name: item.name, color: item.color, value: format(item.values[nearest])}));
+      showTip(chart, event, tipTitle(nearest), rows);
+    };
+    hit.addEventListener('pointermove', hover);
+    hit.addEventListener('pointerdown', hover);
+    hit.addEventListener('pointerleave', () => {
+      rule.setAttribute('visibility', 'hidden');
+      chart.tip.hidden = true;
+    });
+  }
+
+  function barChart(el, {labels, values, height = 300, label, tipRows}) {
+    const chart = startChart(el, height, label);
+    const reach = Math.max(...values.map(Math.abs)) * 1.3 || 0.01;
+    const top = 8;
+    const bottom = height - 26;
+    const y = (value) => bottom - ((value + reach) / (reach * 2)) * (bottom - top);
+    const band = (chart.width - 8) / labels.length;
+    const barWidth = Math.min(band * 0.68, 34);
+    labels.forEach((text, index) => {
+      const center = 4 + band * index + band / 2;
+      const value = values[index];
+      shape(chart.svg, 'rect', {
+        x: center - barWidth / 2, y: Math.min(y(0), y(value)), width: barWidth, height: Math.abs(y(value) - y(0)), rx: 3,
+        style: `fill: ${value >= 0 ? 'var(--s1)' : 'var(--neg)'}`,
+      });
+      shape(chart.svg, 'text', {class: 'val', x: center, y: value >= 0 ? y(value) - 6 : y(value) + 15, 'text-anchor': 'middle'}, signed(value));
+      shape(chart.svg, 'text', {x: center, y: height - 8, 'text-anchor': 'middle'}, text);
+      const hit = shape(chart.svg, 'rect', {x: center - band / 2, y: top, width: band, height: bottom - top, style: 'fill: transparent'});
+      const hover = (event) => showTip(chart, event, DAY_NAMES[index], tipRows(index));
+      hit.addEventListener('pointermove', hover);
+      hit.addEventListener('pointerdown', hover);
+      hit.addEventListener('pointerleave', () => { chart.tip.hidden = true; });
+    });
+    shape(chart.svg, 'line', {x1: 4, x2: chart.width - 4, y1: y(0), y2: y(0), style: 'stroke: var(--axis); stroke-width: 1'});
+  }
+
+  function fillRows(body, rows) {
+    body.replaceChildren(...rows.map(({cells, className, tag}) => {
+      const row = document.createElement('tr');
+      if (className) row.className = className;
+      cells.forEach((text, index) => {
+        const cell = document.createElement('td');
+        cell.textContent = text;
+        if (index === 0 && tag) {
+          const label = document.createElement('span');
+          label.className = 'tag';
+          label.textContent = tag;
+          cell.append(label);
+        }
+        row.append(cell);
+      });
+      return row;
+    }));
+  }
+
+  function renderWeekChips(info) {
+    const off = state.off[info.artist.slug] ?? new Set();
+    $('weeks').replaceChildren(...info.full.map((week) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = shortDate(week.start);
+      chip.setAttribute('aria-pressed', String(!off.has(week.start)));
+      chip.addEventListener('click', () => {
+        const set = state.off[info.artist.slug] ?? (state.off[info.artist.slug] = new Set());
+        if (set.has(week.start)) set.delete(week.start);
+        else set.add(week.start);
+        render();
+      });
+      return chip;
+    }));
+  }
+
+  function renderSummary(info, forecast) {
+    const {stats, used, artist} = info;
+    const peakCounts = DAYS.map((_, day) => used.filter((week) => week.peakDay === day).length);
+    const peakDay = peakCounts.indexOf(Math.max(...peakCounts));
+    const lowCounts = DAYS.map((_, day) => used.filter((week) => week.lowDay === day).length);
+    const lowDay = lowCounts.indexOf(Math.max(...lowCounts));
+    const peaks = used.map((week) => week.peak);
+    $('headline').textContent = `${artist.name}: ${DAY_NAMES[peakDay]} is the peak, ${DAY_NAMES[lowDay]} is the low`;
+    $('takeaway').textContent = `A typical ${DAY_NAMES[peakDay]} runs ${signed(stats[peakDay].relative)} against its week's average and a typical ${DAY_NAMES[lowDay]} runs ${signed(stats[lowDay].relative)}. Based on ${used.length} full ${used.length === 1 ? 'week' : 'weeks'}.`;
+    $('t-peak-day').textContent = DAY_NAMES[peakDay];
+    $('t-peak-note').textContent = `Top day in ${peakCounts[peakDay]} of ${used.length} ${used.length === 1 ? 'week' : 'weeks'}`;
+    $('t-peak').textContent = millions(mean(peaks));
+    $('t-peak-range').textContent = `Range ${millions(Math.min(...peaks))} to ${millions(Math.max(...peaks))}`;
+    $('t-gain').textContent = signed(stats[0].gain);
+    $('t-gain-note').textContent = `Range ${signed(stats[0].gainLow)} to ${signed(stats[0].gainHigh)}`;
+    if (forecast) {
+      const peak = Math.max(...forecast.weighted);
+      $('t-forecast').textContent = millions(peak);
+      $('t-forecast-note').textContent = `${DAY_NAMES[forecast.weighted.indexOf(peak)]}, week of ${shortDate(info.target.start)}`;
+    }
+  }
+
+  function renderPatternCharts(info) {
+    const {used, stats} = info;
+    const averages = stats.map((day) => day.average);
+    lineChart($('c-weekday'), {
+      labels: DAYS,
+      label: 'Views by day of the week',
+      tipTitle: (index) => DAY_NAMES[index],
+      series: [
+        ...used.map((week) => ({name: `Week of ${shortDate(week.start)}`, color: 'var(--muted-series)', values: week.values, dotSize: 2.5, legend: false})),
+        {name: 'Average', color: 'var(--s1)', values: averages, width: 2.5, dotSize: 5, labelExtremes: true},
+      ],
+    });
+    barChart($('c-typical'), {
+      labels: DAYS,
+      values: stats.map((day) => day.relative),
+      label: "Each day compared with its week's average",
+      tipRows: (index) => [
+        {name: 'Vs week average', value: signed(stats[index].relative)},
+        {name: 'Average views', value: whole(stats[index].average)},
+      ],
+    });
+  }
+
+  function renderRoad(info) {
+    const {stats, target, used} = info;
+    const topDay = stats.map((day) => day.average).indexOf(Math.max(...stats.map((day) => day.average)));
+    fillRows($('road-body'), stats.map((day, index) => ({
+      className: index === topDay ? 'is-peak' : '',
+      tag: index === topDay ? 'Peak' : '',
+      cells: [
+        DAY_NAMES[index],
+        whole(day.average),
+        percent(day.ofPeak),
+        signed(day.gain),
+        `${signed(day.gainLow)} to ${signed(day.gainHigh)}`,
+        day.error === null ? '—' : `±${percent(day.error)}`,
+        day.errorViews === null ? '—' : `±${whole(day.errorViews)}`,
+      ],
+    })));
+    const seen = target.values.map((value, day) => (value === null ? null : day)).filter((day) => day !== null);
+    if (seen.length) {
+      const day = seen[seen.length - 1];
+      const estimate = target.values[day] * (1 + stats[day].gain);
+      const low = target.values[day] * (1 + stats[day].gainLow);
+      const high = target.values[day] * (1 + stats[day].gainHigh);
+      $('road-note').textContent = `This week's latest day, ${DAY_NAMES[day]}, was ${millions(target.values[day])}. Applying the average gain points to a peak near ${millions(estimate)}, with a range of ${millions(low)} to ${millions(high)} across the ${used.length === 1 ? 'week' : 'weeks'} used.`;
+    } else {
+      $('road-note').textContent = 'Once the next week starts, this will estimate its peak from the latest reported day.';
+    }
+  }
+
+  function renderForecast(info, history, forecast) {
+    const {target, used} = info;
+    const weights = tiltWeights(history.length, state.tilt).map((value) => percent(value, 0)).join(' / ');
+    $('forecast-title').textContent = `Forecast for the week of ${shortDate(target.start)}`;
+    $('tilt-read').textContent = `${state.tilt.toFixed(1)}×`;
+    const shortfall = history.length < state.span ? ` Only ${history.length} usable ${history.length === 1 ? 'week is' : 'weeks are'} available right now.` : '';
+    $('forecast-note').textContent = `Each newer week counts ${state.tilt.toFixed(1)} times the one before it. Weights, newest first: ${weights}.${shortfall}`;
+    const series = [
+      {name: 'Simple average', color: 'var(--s1)', values: forecast.simple},
+      {name: 'Recent-weighted', color: 'var(--s2)', values: forecast.weighted},
+    ];
+    if (forecast.pace) series.push({name: 'Pace-adjusted', color: 'var(--s3)', values: forecast.pace});
+    if (target.count) series.push({name: 'Actual', color: 'var(--ink)', values: target.values, line: false, dotSize: 6});
+    lineChart($('c-forecast'), {labels: DAYS, series, height: 320, label: 'Forecast for each day of this week', tipTitle: (index) => DAY_NAMES[index]});
+    const topDay = forecast.weighted.indexOf(Math.max(...forecast.weighted));
+    fillRows($('forecast-body'), DAYS.map((_, day) => ({
+      className: day === topDay ? 'is-peak' : '',
+      tag: day === topDay ? 'Peak' : '',
+      cells: [
+        DAY_NAMES[day],
+        target.values[day] === null ? '—' : whole(target.values[day]),
+        whole(forecast.simple[day]),
+        whole(forecast.weighted[day]),
+        forecast.pace ? whole(forecast.pace[day]) : '—',
+      ],
+    })));
+
+    const tests = backtest(used, state.span, state.tilt);
+    const cell = (predicted, actual) => `${millions(predicted)} (${signed(predicted / actual - 1)})`;
+    const meanMiss = (field) => `±${percent(mean(tests.map((test) => Math.abs(test[field] / test.week.peak - 1))))}`;
+    const rows = tests.map((test) => ({
+      cells: [shortDate(test.week.start), String(test.pastWeeks), millions(test.week.peak), cell(test.simple, test.week.peak), cell(test.weighted, test.week.peak), cell(test.pace, test.week.peak)],
+    }));
+    if (tests.length) rows.push({className: 'is-total', cells: ['Average miss', '', '', meanMiss('simple'), meanMiss('weighted'), meanMiss('pace')]});
+    fillRows($('backtest-body'), rows);
+    $('backtest-note').textContent = tests.length
+      ? `Each week is forecast using only the weeks before it, and the percentage shows how far the predicted peak missed. With ${tests.length} test ${tests.length === 1 ? 'week' : 'weeks'}, treat this as an early read and not proof that one method is better.`
+      : 'Turn on at least two weeks to test the forecasts.';
+  }
+
+  function renderExtras(info) {
+    const {used, stats, artist} = info;
+    const heads = ['Week of', ...DAYS].map((text) => {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      cell.textContent = text;
+      return cell;
+    });
+    const headRow = document.createElement('tr');
+    headRow.append(...heads);
+    $('heat-head').replaceChildren(headRow);
+    const shares = used.map((week) => week.values.map((value) => value / week.average - 1));
+    const reach = Math.max(...shares.flat().map(Math.abs)) || 1;
+    $('heat-body').replaceChildren(...used.map((week, row) => {
+      const line = document.createElement('tr');
+      const first = document.createElement('td');
+      first.textContent = shortDate(week.start);
+      line.append(first);
+      shares[row].forEach((share) => {
+        const cell = document.createElement('td');
+        cell.textContent = signed(share);
+        const strength = Math.round((Math.abs(share) / reach) * 70);
+        cell.style.background = `color-mix(in srgb, ${share >= 0 ? 'var(--s1)' : 'var(--neg)'} ${strength}%, var(--mid))`;
+        line.append(cell);
+      });
+      return line;
+    }));
+
+    const byDate = new Map(artist.days.map((day) => [day.date, day.views]));
+    const usedDates = new Set(used.flatMap((week) => DAYS.map((_, day) => addDays(week.start, day))));
+    const changes = DAYS.map((_, day) => {
+      const values = used.flatMap((week) => {
+        const date = addDays(week.start, day);
+        const previous = addDays(date, -1);
+        return usedDates.has(previous) ? [byDate.get(date) / byDate.get(previous) - 1] : [];
+      });
+      return values.length ? mean(values) : 0;
+    });
+    barChart($('c-dod'), {
+      labels: DAYS,
+      values: changes,
+      label: 'Average change from the day before',
+      tipRows: (index) => [{name: `Vs ${DAY_NAMES[(index + 6) % 7]}`, value: signed(changes[index])}],
+    });
+
+    lineChart($('c-weekly'), {
+      labels: used.map((week) => shortDate(week.start)),
+      label: 'Weekly high, average and low',
+      series: [
+        {name: 'High', color: 'var(--s1)', values: used.map((week) => week.peak)},
+        {name: 'Average', color: 'var(--s2)', values: used.map((week) => week.average)},
+        {name: 'Low', color: 'var(--s3)', values: used.map((week) => week.low)},
+      ],
+    });
+
+    const averageByDate = new Map(used.flatMap((week) => DAYS.map((_, day) => [addDays(week.start, day), week.average])));
+    const narrow = $('c-timeline').clientWidth < 520;
+    const dayIndex = (date) => (toDate(date).getUTCDay() + 6) % 7;
+    let mondays = 0;
+    const showTick = artist.days.map(({date}) => dayIndex(date) === 0 && (!narrow || mondays++ % 2 === 0));
+    lineChart($('c-timeline'), {
+      labels: artist.days.map(({date}) => shortDate(date)),
+      height: 280,
+      label: 'Every reported day',
+      tickFilter: (index) => showTick[index],
+      tipTitle: (index) => `${DAYS[dayIndex(artist.days[index].date)]}, ${shortDate(artist.days[index].date)}`,
+      series: [
+        {name: 'Daily views', color: 'var(--s1)', values: artist.days.map(({views}) => views), dotSize: 3},
+        {name: 'Week average', color: 'var(--ink-3)', values: artist.days.map(({date}) => averageByDate.get(date) ?? null), dashed: true, dots: false, width: 1.5},
+      ],
+    });
+  }
+
+  function renderCompare() {
+    const infos = artists.map((artist, index) => ({...analyze(artist), color: SLOTS[index % SLOTS.length]})).filter((info) => info.stats);
+    if (!infos.length) return;
+    lineChart($('c-compare'), {
+      labels: DAYS,
+      label: 'Typical week by artist',
+      format: (value) => signed(value),
+      axisFormat: (value) => signed(value, 0),
+      tipTitle: (index) => DAY_NAMES[index],
+      series: infos.map((info) => ({name: info.artist.name, color: info.color, values: info.stats.map((day) => day.relative)})),
+    });
+    fillRows($('compare-body'), infos.map((info) => {
+      const relative = info.stats.map((day) => day.relative);
+      const peaks = info.used.map((week) => week.peak);
+      return {
+        className: info.artist.slug === state.slug ? 'is-peak' : '',
+        cells: [
+          info.artist.name,
+          String(info.used.length),
+          millions(mean(info.used.map((week) => week.average))),
+          DAYS[relative.indexOf(Math.max(...relative))],
+          percent(Math.max(...relative) - Math.min(...relative)),
+          peaks.length > 1 ? `±${percent(sd(peaks) / mean(peaks))}` : '—',
+        ],
+      };
+    }));
+  }
+
+  function render() {
+    const artist = artists.find((item) => item.slug === state.slug);
+    const info = analyze(artist);
+    renderWeekChips(info);
+    const ready = info.used.length > 0;
+    $('analysis').hidden = !ready;
+    $('analysis').style.display = ready ? 'grid' : 'none';
+    $('empty').hidden = ready;
+    const first = artist.days[0].date;
+    const last = artist.days[artist.days.length - 1].date;
+    const skipped = info.skipped.map((week) => `${shortDate(week.start)} (${week.count} of 7 days)`).join(', ');
+    $('foot').textContent = `${artist.name} data runs ${shortDate(first)} to ${shortDate(last)}. Weekly statistics use full Monday to Sunday weeks only${skipped ? `, so these partial weeks are left out: ${skipped}` : ''}. These are YouTube Charts Global figures pasted from ChatGPT and not independently verified. A few weeks is a small sample, and a new release can break the pattern.`;
+    if (!ready) {
+      $('headline').textContent = artist.name;
+      $('takeaway').textContent = '';
+      return;
+    }
+    const history = info.used.filter((week) => week.start < info.target.start).reverse().slice(0, state.span);
+    const forecast = forecastWeek(history, state.tilt, info.target.values);
+    renderSummary(info, forecast);
+    renderPatternCharts(info);
+    renderRoad(info);
+    renderForecast(info, history, forecast);
+    renderExtras(info);
+    renderCompare();
+  }
+
+  const select = $('artist');
+  select.replaceChildren(...artists.map((artist) => new Option(artist.name, artist.slug)));
+  select.value = state.slug;
+  select.addEventListener('change', () => {
+    state.slug = select.value;
+    render();
+  });
+  document.querySelectorAll('input[name="span"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      state.span = Number(input.value);
+      render();
+    });
+  });
+  $('tilt').addEventListener('input', (event) => {
+    state.tilt = Number(event.target.value);
+    render();
+  });
+
+  render();
+  (document.fonts?.ready ?? Promise.resolve()).then(render);
+  let lastWidth = document.documentElement.clientWidth;
+  new ResizeObserver(() => {
+    const width = document.documentElement.clientWidth;
+    if (width !== lastWidth) {
+      lastWidth = width;
+      render();
+    }
+  }).observe(document.documentElement);
+</script>
