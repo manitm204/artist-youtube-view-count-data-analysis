@@ -189,6 +189,20 @@
 
       <h2 class="section-title" id="forecast-title"></h2>
       <section class="card">
+        <h3>This week against recent weeks</h3>
+        <div class="controls">
+          <div class="field">
+            <span class="field-label">Show the past</span>
+            <div class="seg" role="radiogroup" aria-label="Number of past weeks to show">
+              <input type="radio" name="recent" id="recent-2" value="2"><label for="recent-2">2 weeks</label>
+              <input type="radio" name="recent" id="recent-3" value="3" checked><label for="recent-3">3 weeks</label>
+            </div>
+          </div>
+        </div>
+        <p class="note" id="recent-note"></p>
+        <div class="chart" id="c-recent"></div>
+      </section>
+      <section class="card">
         <div class="controls">
           <div class="field">
             <span class="field-label">Average the past</span>
@@ -287,7 +301,7 @@
   const DAY_MS = 86400000;
   const SLOTS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'].map((name) => `var(${name})`);
   const artists = JSON.parse(document.getElementById('artist-data').textContent);
-  const state = {slug: artists[0].slug, off: {}, span: 3, tilt: 1.5};
+  const state = {slug: artists[0].slug, off: {}, span: 3, tilt: 1.5, recent: 3};
 
   const $ = (id) => document.getElementById(id);
   const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -539,8 +553,8 @@
       rule.setAttribute('x1', x(nearest));
       rule.setAttribute('x2', x(nearest));
       rule.setAttribute('visibility', 'visible');
-      const rows = series.filter((item) => item.values[nearest] !== null && item.tip !== false)
-        .map((item) => ({name: item.name, color: item.color, value: format(item.values[nearest])}));
+      const rows = series.filter((item) => (item.tipValues ?? item.values)[nearest] !== null && item.tip !== false)
+        .map((item) => ({name: item.name, color: item.color, value: format((item.tipValues ?? item.values)[nearest])}));
       showTip(chart, event, tipTitle(nearest), rows);
     };
     hit.addEventListener('pointermove', hover);
@@ -685,6 +699,33 @@
     } else {
       $('road-note').textContent = 'Once the next week starts, this will estimate its peak from the latest reported day.';
     }
+  }
+
+  function renderRecent(info, forecast) {
+    const {target, used} = info;
+    const past = used.filter((week) => week.start < target.start).slice(-state.recent);
+    const series = past.map((week, index) => ({
+      name: `Week of ${shortDate(week.start)}`,
+      color: SLOTS[(past.length - 1 - index) % SLOTS.length],
+      values: week.values,
+      dotSize: 3,
+    }));
+    const seen = target.values.map((value, day) => (value === null ? null : day)).filter((day) => day !== null);
+    const latest = seen.length ? seen[seen.length - 1] : null;
+    if (forecast.pace && latest < 6) {
+      // The dashed line starts at the latest actual day so it joins the solid line, which is drawn over it.
+      const projected = DAYS.map((_, day) => (day < latest ? null : day === latest ? target.values[day] : forecast.pace[day]));
+      const tipValues = projected.map((value, day) => (day === latest ? null : value));
+      series.push({name: 'Pace-adjusted forecast', color: 'var(--ink-3)', values: projected, tipValues, dashed: true, dotSize: 3});
+    }
+    if (seen.length) {
+      series.push({name: `This week (${shortDate(target.start)})`, color: 'var(--ink)', values: target.values, width: 3, dotSize: 5});
+    }
+    const shortfall = past.length < state.recent ? ` Only ${past.length} full ${past.length === 1 ? 'week is' : 'weeks are'} available.` : '';
+    $('recent-note').textContent = seen.length
+      ? `Colored lines are the last full weeks, the black line is this week so far, and the dashed line is the pace-adjusted forecast for the remaining days. The forecast uses the averaging and tilt settings below.${shortfall}`
+      : `Colored lines are the last full weeks. This week's line appears once its Monday is reported.${shortfall}`;
+    lineChart($('c-recent'), {labels: DAYS, series, height: 320, label: 'This week against recent weeks', tipTitle: (index) => DAY_NAMES[index]});
   }
 
   function renderForecast(info, history, forecast) {
@@ -850,6 +891,7 @@
     renderSummary(info, forecast);
     renderPatternCharts(info);
     renderRoad(info);
+    renderRecent(info, forecast);
     renderForecast(info, history, forecast);
     renderExtras(info);
     renderCompare();
@@ -861,6 +903,12 @@
   select.addEventListener('change', () => {
     state.slug = select.value;
     render();
+  });
+  document.querySelectorAll('input[name="recent"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      state.recent = Number(input.value);
+      render();
+    });
   });
   document.querySelectorAll('input[name="span"]').forEach((input) => {
     input.addEventListener('change', () => {
