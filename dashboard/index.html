@@ -66,6 +66,7 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { background: transparent; border: 1px solid var(--axis); border-radius: 999px; padding: 3px 11px; cursor: pointer; color: var(--ink-3); text-decoration: line-through; }
   .chip[aria-pressed="true"] { background: var(--pill); border-color: var(--s1); color: var(--ink); text-decoration: none; }
+  .chip:disabled { cursor: default; border-style: dashed; text-decoration: none; }
   :focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 
   main { display: grid; gap: 20px; padding-block: 20px 40px; }
@@ -266,7 +267,7 @@
 
       <section class="card">
         <h3>Every day in the data</h3>
-        <p class="note">Includes all reported days, even weeks switched off above. Dashed lines mark the average of each week used.</p>
+        <p class="note" id="timeline-note">Includes all reported days, even weeks switched off above. Dashed lines mark the average of each week used.</p>
         <div class="chart" id="c-timeline"></div>
       </section>
 
@@ -294,13 +295,17 @@
   </main>
 </div>
 
-<script type="application/json" id="artist-data">[{"slug":"ariana_grande","name":"Ariana Grande","days":[{"date":"2026-10-06","views":13681411},{"date":"2026-10-07","views":13498403},{"date":"2026-10-08","views":13665001},{"date":"2026-10-09","views":13799473},{"date":"2026-10-10","views":13458482},{"date":"2026-10-11","views":12791761},{"date":"2026-10-12","views":13181842},{"date":"2026-10-13","views":13423854},{"date":"2026-10-14","views":13658840},{"date":"2026-10-15","views":13708745},{"date":"2026-10-16","views":13981554},{"date":"2026-10-17","views":13359958},{"date":"2026-10-18","views":12753446},{"date":"2026-10-19","views":13599361},{"date":"2026-10-20","views":13828180},{"date":"2026-10-21","views":13913944},{"date":"2026-10-22","views":13875036},{"date":"2026-10-23","views":13939814},{"date":"2026-10-24","views":13472764},{"date":"2026-10-25","views":12573472},{"date":"2026-10-26","views":13134797},{"date":"2026-10-27","views":13576068},{"date":"2026-10-28","views":13663105},{"date":"2026-10-29","views":13876808},{"date":"2026-10-30","views":14341801},{"date":"2026-10-31","views":13338876},{"date":"2026-11-01","views":13156903},{"date":"2026-11-02","views":13463021},{"date":"2026-11-03","views":13998696},{"date":"2026-11-04","views":14270939},{"date":"2026-11-05","views":14318012}]},{"slug":"bad_bunny","name":"Bad Bunny","days":[{"date":"2026-10-06","views":25106350},{"date":"2026-10-07","views":25610914},{"date":"2026-10-08","views":26053767},{"date":"2026-10-09","views":27390280},{"date":"2026-10-10","views":27384068},{"date":"2026-10-11","views":22660416},{"date":"2026-10-12","views":23442002},{"date":"2026-10-13","views":24103716},{"date":"2026-10-14","views":24574691},{"date":"2026-10-15","views":25261007},{"date":"2026-10-16","views":26417832},{"date":"2026-10-17","views":26296602},{"date":"2026-10-18","views":21821882},{"date":"2026-10-19","views":23533270},{"date":"2026-10-20","views":23600661},{"date":"2026-10-21","views":24396995},{"date":"2026-10-22","views":25033279},{"date":"2026-10-23","views":27164778},{"date":"2026-10-24","views":27205168},{"date":"2026-10-25","views":21553685},{"date":"2026-10-26","views":23357069},{"date":"2026-10-27","views":24711028},{"date":"2026-10-28","views":25309114},{"date":"2026-10-29","views":26258838},{"date":"2026-10-30","views":28570359},{"date":"2026-10-31","views":28690490},{"date":"2026-11-01","views":21916908},{"date":"2026-11-02","views":23388543},{"date":"2026-11-03","views":24857536},{"date":"2026-11-04","views":25745763},{"date":"2026-11-05","views":26547120}]},{"slug":"drake","name":"Drake","days":[{"date":"2026-10-06","views":13378312},{"date":"2026-10-07","views":13307171},{"date":"2026-10-08","views":13439536},{"date":"2026-10-09","views":14125646},{"date":"2026-10-10","views":13382429},{"date":"2026-10-11","views":11505089},{"date":"2026-10-12","views":12055446},{"date":"2026-10-13","views":12213713},{"date":"2026-10-14","views":12215397},{"date":"2026-10-15","views":12400532},{"date":"2026-10-16","views":12994261},{"date":"2026-10-17","views":12261803},{"date":"2026-10-18","views":10606199},{"date":"2026-10-19","views":11325194},{"date":"2026-10-20","views":11418944},{"date":"2026-10-21","views":11667785},{"date":"2026-10-22","views":12004771},{"date":"2026-10-23","views":12934518},{"date":"2026-10-24","views":12539252},{"date":"2026-10-25","views":10754044},{"date":"2026-10-26","views":11483557},{"date":"2026-10-27","views":11947813},{"date":"2026-10-28","views":12115109},{"date":"2026-10-29","views":12483563},{"date":"2026-10-30","views":13175545},{"date":"2026-10-31","views":12382123},{"date":"2026-11-01","views":10570987},{"date":"2026-11-02","views":11108188},{"date":"2026-11-03","views":11604175},{"date":"2026-11-04","views":11667054},{"date":"2026-11-05","views":11925802}]},{"slug":"future","name":"Future","days":[{"date":"2026-10-06","views":5747977},{"date":"2026-10-07","views":5892938},{"date":"2026-10-08","views":6021720},{"date":"2026-10-09","views":6425672},{"date":"2026-10-10","views":5976671},{"date":"2026-10-11","views":5029743},{"date":"2026-10-12","views":5388543},{"date":"2026-10-13","views":5573137},{"date":"2026-10-14","views":5659162},{"date":"2026-10-15","views":5801420},{"date":"2026-10-16","views":6253248},{"date":"2026-10-17","views":5913590},{"date":"2026-10-18","views":4980900},{"date":"2026-10-19","views":5374753},{"date":"2026-10-20","views":5490903},{"date":"2026-10-21","views":5597964},{"date":"2026-10-22","views":5846689},{"date":"2026-10-23","views":6344352},{"date":"2026-10-24","views":6032384},{"date":"2026-10-25","views":4956912},{"date":"2026-10-26","views":5347235},{"date":"2026-10-27","views":5550594},{"date":"2026-10-28","views":5612137},{"date":"2026-10-29","views":5873084},{"date":"2026-10-30","views":6405561},{"date":"2026-10-31","views":6151818},{"date":"2026-11-01","views":4985378},{"date":"2026-11-02","views":5291018},{"date":"2026-11-03","views":5588784},{"date":"2026-11-04","views":5661928},{"date":"2026-11-05","views":5777981}]},{"slug":"justin_bieber","name":"Justin Bieber","days":[{"date":"2026-10-06","views":13926945},{"date":"2026-10-07","views":14299648},{"date":"2026-10-08","views":14721661},{"date":"2026-10-09","views":15254202},{"date":"2026-10-10","views":15116728},{"date":"2026-10-11","views":13642369},{"date":"2026-10-12","views":13714398},{"date":"2026-10-13","views":13990585},{"date":"2026-10-14","views":14148514},{"date":"2026-10-15","views":14220736},{"date":"2026-10-16","views":15172328},{"date":"2026-10-17","views":15043197},{"date":"2026-10-18","views":13702148},{"date":"2026-10-19","views":14060042},{"date":"2026-10-20","views":14168498},{"date":"2026-10-21","views":14547716},{"date":"2026-10-22","views":14858665},{"date":"2026-10-23","views":15782676},{"date":"2026-10-24","views":15610063},{"date":"2026-10-25","views":13841829},{"date":"2026-10-26","views":14206007},{"date":"2026-10-27","views":14740927},{"date":"2026-10-28","views":14937499},{"date":"2026-10-29","views":15271498},{"date":"2026-10-30","views":15992520},{"date":"2026-10-31","views":15327688},{"date":"2026-11-01","views":14522382},{"date":"2026-11-02","views":14401665},{"date":"2026-11-03","views":15037356},{"date":"2026-11-04","views":15368568},{"date":"2026-11-05","views":15509111}]},{"slug":"morgan_wallen","name":"Morgan Wallen","days":[{"date":"2026-10-06","views":4332808},{"date":"2026-10-07","views":4379251},{"date":"2026-10-08","views":4537503},{"date":"2026-10-09","views":4910573},{"date":"2026-10-10","views":4390673},{"date":"2026-10-11","views":3624401},{"date":"2026-10-12","views":4104006},{"date":"2026-10-13","views":4169006},{"date":"2026-10-14","views":4296128},{"date":"2026-10-15","views":4275277},{"date":"2026-10-16","views":4635496},{"date":"2026-10-17","views":4154905},{"date":"2026-10-18","views":3551518},{"date":"2026-10-19","views":4015989},{"date":"2026-10-20","views":4148747},{"date":"2026-10-21","views":4179474},{"date":"2026-10-22","views":4192933},{"date":"2026-10-23","views":4663262},{"date":"2026-10-24","views":4237980},{"date":"2026-10-25","views":3458315},{"date":"2026-10-26","views":3887999},{"date":"2026-10-27","views":4018060},{"date":"2026-10-28","views":4098386},{"date":"2026-10-29","views":4183655},{"date":"2026-10-30","views":4475170},{"date":"2026-10-31","views":4002481},{"date":"2026-11-01","views":3312928},{"date":"2026-11-02","views":3751052},{"date":"2026-11-03","views":3941140},{"date":"2026-11-04","views":3995214},{"date":"2026-11-05","views":4131280}]}]</script>
+<script type="application/json" id="artist-data">[{"slug":"ariana_grande","name":"Ariana Grande","days":[{"date":"2026-10-06","views":13681411},{"date":"2026-10-07","views":13498403},{"date":"2026-10-08","views":13665001},{"date":"2026-10-09","views":13799473},{"date":"2026-10-10","views":13458482},{"date":"2026-10-11","views":12791761},{"date":"2026-10-12","views":13181842},{"date":"2026-10-13","views":13423854},{"date":"2026-10-14","views":13658840},{"date":"2026-10-15","views":13708745},{"date":"2026-10-16","views":13981554},{"date":"2026-10-17","views":13359958},{"date":"2026-10-18","views":12753446},{"date":"2026-10-19","views":13599361},{"date":"2026-10-20","views":13828180},{"date":"2026-10-21","views":13913944},{"date":"2026-10-22","views":13875036},{"date":"2026-10-23","views":13939814},{"date":"2026-10-24","views":13472764},{"date":"2026-10-25","views":12573472},{"date":"2026-10-26","views":13134797},{"date":"2026-10-27","views":13576068},{"date":"2026-10-28","views":13663105},{"date":"2026-10-29","views":13876808},{"date":"2026-10-30","views":14341801},{"date":"2026-10-31","views":13338876},{"date":"2026-11-01","views":13156903},{"date":"2026-11-02","views":13463021},{"date":"2026-11-03","views":13998696},{"date":"2026-11-04","views":14270939},{"date":"2026-11-05","views":14486065},{"date":"2026-11-06","views":null},{"date":"2026-11-07","views":null},{"date":"2026-11-08","views":13592649},{"date":"2026-11-09","views":null},{"date":"2026-11-10","views":null},{"date":"2026-11-11","views":14236203},{"date":"2026-11-12","views":14298663},{"date":"2026-11-13","views":14733340},{"date":"2026-11-14","views":14516610}]},{"slug":"bad_bunny","name":"Bad Bunny","days":[{"date":"2026-10-06","views":25106350},{"date":"2026-10-07","views":25610914},{"date":"2026-10-08","views":26053767},{"date":"2026-10-09","views":27390280},{"date":"2026-10-10","views":27384068},{"date":"2026-10-11","views":22660416},{"date":"2026-10-12","views":23442002},{"date":"2026-10-13","views":24103716},{"date":"2026-10-14","views":24574691},{"date":"2026-10-15","views":25261007},{"date":"2026-10-16","views":26417832},{"date":"2026-10-17","views":26296602},{"date":"2026-10-18","views":21821882},{"date":"2026-10-19","views":23533270},{"date":"2026-10-20","views":23600661},{"date":"2026-10-21","views":24396995},{"date":"2026-10-22","views":25033279},{"date":"2026-10-23","views":27164778},{"date":"2026-10-24","views":27205168},{"date":"2026-10-25","views":21553685},{"date":"2026-10-26","views":23357069},{"date":"2026-10-27","views":24711028},{"date":"2026-10-28","views":25309114},{"date":"2026-10-29","views":26258838},{"date":"2026-10-30","views":28570359},{"date":"2026-10-31","views":28690490},{"date":"2026-11-01","views":21916908},{"date":"2026-11-02","views":23388543},{"date":"2026-11-03","views":24857536},{"date":"2026-11-04","views":25745763},{"date":"2026-11-05","views":26507305},{"date":"2026-11-06","views":null},{"date":"2026-11-07","views":null},{"date":"2026-11-08","views":23047270},{"date":"2026-11-09","views":null},{"date":"2026-11-10","views":null},{"date":"2026-11-11","views":25873387},{"date":"2026-11-12","views":26262928},{"date":"2026-11-13","views":28106803},{"date":"2026-11-14","views":28811051}]},{"slug":"drake","name":"Drake","days":[{"date":"2026-10-06","views":13378312},{"date":"2026-10-07","views":13307171},{"date":"2026-10-08","views":13439536},{"date":"2026-10-09","views":14125646},{"date":"2026-10-10","views":13382429},{"date":"2026-10-11","views":11505089},{"date":"2026-10-12","views":12055446},{"date":"2026-10-13","views":12213713},{"date":"2026-10-14","views":12215397},{"date":"2026-10-15","views":12400532},{"date":"2026-10-16","views":12994261},{"date":"2026-10-17","views":12261803},{"date":"2026-10-18","views":10606199},{"date":"2026-10-19","views":11325194},{"date":"2026-10-20","views":11418944},{"date":"2026-10-21","views":11667785},{"date":"2026-10-22","views":12004771},{"date":"2026-10-23","views":12934518},{"date":"2026-10-24","views":12539252},{"date":"2026-10-25","views":10754044},{"date":"2026-10-26","views":11483557},{"date":"2026-10-27","views":11947813},{"date":"2026-10-28","views":12115109},{"date":"2026-10-29","views":12483563},{"date":"2026-10-30","views":13175545},{"date":"2026-10-31","views":12382123},{"date":"2026-11-01","views":10570987},{"date":"2026-11-02","views":11108188},{"date":"2026-11-03","views":11604175},{"date":"2026-11-04","views":11667054},{"date":"2026-11-05","views":11945779},{"date":"2026-11-06","views":null},{"date":"2026-11-07","views":null},{"date":"2026-11-08","views":10490770},{"date":"2026-11-09","views":null},{"date":"2026-11-10","views":null},{"date":"2026-11-11","views":11740507},{"date":"2026-11-12","views":11995242},{"date":"2026-11-13","views":13188737},{"date":"2026-11-14","views":12777626}]},{"slug":"future","name":"Future","days":[{"date":"2026-10-06","views":5747977},{"date":"2026-10-07","views":5892938},{"date":"2026-10-08","views":6021720},{"date":"2026-10-09","views":6425672},{"date":"2026-10-10","views":5976671},{"date":"2026-10-11","views":5029743},{"date":"2026-10-12","views":5388543},{"date":"2026-10-13","views":5573137},{"date":"2026-10-14","views":5659162},{"date":"2026-10-15","views":5801420},{"date":"2026-10-16","views":6253248},{"date":"2026-10-17","views":5913590},{"date":"2026-10-18","views":4980900},{"date":"2026-10-19","views":5374753},{"date":"2026-10-20","views":5490903},{"date":"2026-10-21","views":5597964},{"date":"2026-10-22","views":5846689},{"date":"2026-10-23","views":6344352},{"date":"2026-10-24","views":6032384},{"date":"2026-10-25","views":4956912},{"date":"2026-10-26","views":5347235},{"date":"2026-10-27","views":5550594},{"date":"2026-10-28","views":5612137},{"date":"2026-10-29","views":5873084},{"date":"2026-10-30","views":6405561},{"date":"2026-10-31","views":6151818},{"date":"2026-11-01","views":4985378},{"date":"2026-11-02","views":5291018},{"date":"2026-11-03","views":5588784},{"date":"2026-11-04","views":5661928},{"date":"2026-11-05","views":5787335},{"date":"2026-11-06","views":null},{"date":"2026-11-07","views":null},{"date":"2026-11-08","views":5414549},{"date":"2026-11-09","views":null},{"date":"2026-11-10","views":null},{"date":"2026-11-11","views":6766297},{"date":"2026-11-12","views":6706947},{"date":"2026-11-13","views":6950121},{"date":"2026-11-14","views":6580015}]},{"slug":"justin_bieber","name":"Justin Bieber","days":[{"date":"2026-10-06","views":13926945},{"date":"2026-10-07","views":14299648},{"date":"2026-10-08","views":14721661},{"date":"2026-10-09","views":15254202},{"date":"2026-10-10","views":15116728},{"date":"2026-10-11","views":13642369},{"date":"2026-10-12","views":13714398},{"date":"2026-10-13","views":13990585},{"date":"2026-10-14","views":14148514},{"date":"2026-10-15","views":14220736},{"date":"2026-10-16","views":15172328},{"date":"2026-10-17","views":15043197},{"date":"2026-10-18","views":13702148},{"date":"2026-10-19","views":14060042},{"date":"2026-10-20","views":14168498},{"date":"2026-10-21","views":14547716},{"date":"2026-10-22","views":14858665},{"date":"2026-10-23","views":15782676},{"date":"2026-10-24","views":15610063},{"date":"2026-10-25","views":13841829},{"date":"2026-10-26","views":14206007},{"date":"2026-10-27","views":14740927},{"date":"2026-10-28","views":14937499},{"date":"2026-10-29","views":15271498},{"date":"2026-10-30","views":15992520},{"date":"2026-10-31","views":15327688},{"date":"2026-11-01","views":14522382},{"date":"2026-11-02","views":14401665},{"date":"2026-11-03","views":15037356},{"date":"2026-11-04","views":15368568},{"date":"2026-11-05","views":15747312},{"date":"2026-11-06","views":null},{"date":"2026-11-07","views":null},{"date":"2026-11-08","views":14592055},{"date":"2026-11-09","views":null},{"date":"2026-11-10","views":null},{"date":"2026-11-11","views":15764118},{"date":"2026-11-12","views":15938697},{"date":"2026-11-13","views":16957550},{"date":"2026-11-14","views":16865852}]},{"slug":"katseye","name":"Katseye","days":[{"date":"2026-11-05","views":14061081},{"date":"2026-11-06","views":null},{"date":"2026-11-07","views":null},{"date":"2026-11-08","views":15813763},{"date":"2026-11-09","views":null},{"date":"2026-11-10","views":null},{"date":"2026-11-11","views":14518762},{"date":"2026-11-12","views":14407654},{"date":"2026-11-13","views":16451743},{"date":"2026-11-14","views":19048296}]},{"slug":"morgan_wallen","name":"Morgan Wallen","days":[{"date":"2026-10-06","views":4332808},{"date":"2026-10-07","views":4379251},{"date":"2026-10-08","views":4537503},{"date":"2026-10-09","views":4910573},{"date":"2026-10-10","views":4390673},{"date":"2026-10-11","views":3624401},{"date":"2026-10-12","views":4104006},{"date":"2026-10-13","views":4169006},{"date":"2026-10-14","views":4296128},{"date":"2026-10-15","views":4275277},{"date":"2026-10-16","views":4635496},{"date":"2026-10-17","views":4154905},{"date":"2026-10-18","views":3551518},{"date":"2026-10-19","views":4015989},{"date":"2026-10-20","views":4148747},{"date":"2026-10-21","views":4179474},{"date":"2026-10-22","views":4192933},{"date":"2026-10-23","views":4663262},{"date":"2026-10-24","views":4237980},{"date":"2026-10-25","views":3458315},{"date":"2026-10-26","views":3887999},{"date":"2026-10-27","views":4018060},{"date":"2026-10-28","views":4098386},{"date":"2026-10-29","views":4183655},{"date":"2026-10-30","views":4475170},{"date":"2026-10-31","views":4002481},{"date":"2026-11-01","views":3312928},{"date":"2026-11-02","views":3751052},{"date":"2026-11-03","views":3941140},{"date":"2026-11-04","views":3995214},{"date":"2026-11-05","views":4130765},{"date":"2026-11-06","views":null},{"date":"2026-11-07","views":null},{"date":"2026-11-08","views":3474233},{"date":"2026-11-09","views":null},{"date":"2026-11-10","views":null},{"date":"2026-11-11","views":4038810},{"date":"2026-11-12","views":4130257},{"date":"2026-11-13","views":4553615},{"date":"2026-11-14","views":4171283}]}]</script>
 <script>
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const DAY_MS = 86400000;
   const SLOTS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'].map((name) => `var(${name})`);
   const artists = JSON.parse(document.getElementById('artist-data').textContent);
+  // A missing day (NaN or blank in the CSV) arrives as null. Anything else that isn't a number is treated the same way.
+  artists.forEach((artist) => artist.days.forEach((day) => {
+    if (!Number.isFinite(day.views)) day.views = null;
+  }));
   const state = {slug: artists[0].slug, off: {}, span: 3, tilt: 1.5, recent: 3};
 
   const $ = (id) => document.getElementById(id);
@@ -310,6 +315,7 @@
     return values.length < 2 ? 0 : Math.sqrt(values.reduce((sum, value) => sum + (value - center) ** 2, 0) / (values.length - 1));
   };
   const known = (values) => values.filter((value) => value !== null);
+  const dayList = (indexes) => indexes.map((day) => DAYS[day]).join(', ');
   const toDate = (day) => new Date(`${day}T00:00:00Z`);
   const toIso = (date) => date.toISOString().slice(0, 10);
   const addDays = (day, count) => toIso(new Date(toDate(day).getTime() + count * DAY_MS));
@@ -324,8 +330,10 @@
     days.forEach(({date, views}) => {
       const index = (toDate(date).getUTCDay() + 6) % 7;
       const start = addDays(date, -index);
-      if (!weeks.has(start)) weeks.set(start, {start, values: Array(7).fill(null)});
-      weeks.get(start).values[index] = views;
+      if (!weeks.has(start)) weeks.set(start, {start, values: Array(7).fill(null), missing: []});
+      const week = weeks.get(start);
+      if (views === null) week.missing.push(index);
+      else week.values[index] = views;
     });
     return [...weeks.values()].sort((a, b) => a.start.localeCompare(b.start)).map((week) => {
       const count = known(week.values).length;
@@ -398,9 +406,14 @@
     const full = weeks.filter((week) => week.count === 7);
     const used = full.filter((week) => !off.has(week.start));
     const last = weeks[weeks.length - 1];
-    const target = last.count < 7 ? last : {start: addDays(last.start, 7), values: Array(7).fill(null), count: 0};
+    // The last week is still in progress only if its Sunday isn't in the data yet. A finished week with missing days is a gap week, not this week.
+    const lastDate = artist.days[artist.days.length - 1].date;
+    const inProgress = last.count < 7 && lastDate < addDays(last.start, 6);
+    const target = inProgress ? last : {start: addDays(last.start, 7), values: Array(7).fill(null), missing: [], count: 0};
     const skipped = weeks.filter((week) => week.count < 7 && week.start !== target.start);
-    return {artist, weeks, full, used, target, skipped, stats: used.length ? dayStats(used) : null};
+    const gapWeeks = skipped.filter((week) => week.missing.length);
+    const edgeWeeks = skipped.filter((week) => !week.missing.length);
+    return {artist, weeks, full, used, target, gapWeeks, edgeWeeks, stats: used.length ? dayStats(used) : null};
   }
 
   function niceTicks(low, high, count) {
@@ -484,12 +497,16 @@
   }
 
   function lineChart(el, options) {
-    const {labels, series, height = 300, label, format = millions, axisFormat = format, tickFilter = () => true, tipTitle = (index) => labels[index]} = options;
+    const {labels, series, height = 300, label, format = millions, axisFormat = format, tickFilter = () => true, tipTitle = (index) => labels[index], gaps = []} = options;
     const chart = startChart(el, height, label);
     const legendItems = series.filter((item) => item.legend !== false).map((item) => ({name: item.name, color: item.color, kind: item.dashed ? 'dash' : item.line === false ? 'dot' : ''}));
     if (legendItems.length > 1) addLegend(chart, legendItems);
 
     const values = series.flatMap((item) => known(item.values));
+    if (!values.length) {
+      shape(chart.svg, 'text', {x: chart.width / 2, y: height / 2, 'text-anchor': 'middle'}, 'No data to show');
+      return;
+    }
     const ticks = niceTicks(Math.min(...values), Math.max(...values), 5);
     const margin = {top: 20, right: 14, bottom: 26};
     const probe = shape(chart.svg, 'text');
@@ -513,6 +530,14 @@
     });
     labels.forEach((text, index) => {
       if (tickFilter(index)) shape(chart.svg, 'text', {x: x(index), y: height - 8, 'text-anchor': 'middle'}, text);
+    });
+
+    // Shade days with no data so a break in the line reads as a blip, not a drop.
+    const step = labels.length > 1 ? x(1) - x(0) : plotRight - margin.left;
+    gaps.forEach((index) => {
+      const left = Math.max(margin.left, x(index) - step / 2);
+      const right = Math.min(plotRight, x(index) + step / 2);
+      shape(chart.svg, 'rect', {x: left, y: margin.top, width: right - left, height: plotBottom - margin.top, style: 'fill: var(--mid)'});
     });
 
     series.forEach((item) => {
@@ -555,6 +580,7 @@
       rule.setAttribute('visibility', 'visible');
       const rows = series.filter((item) => (item.tipValues ?? item.values)[nearest] !== null && item.tip !== false)
         .map((item) => ({name: item.name, color: item.color, value: format((item.tipValues ?? item.values)[nearest])}));
+      if (gaps.includes(nearest)) rows.unshift({name: 'No data for this day', value: '—'});
       showTip(chart, event, tipTitle(nearest), rows);
     };
     hit.addEventListener('pointermove', hover);
@@ -612,10 +638,17 @@
 
   function renderWeekChips(info) {
     const off = state.off[info.artist.slug] ?? new Set();
-    $('weeks').replaceChildren(...info.full.map((week) => {
+    const listed = [...info.full, ...info.gapWeeks].sort((a, b) => a.start.localeCompare(b.start));
+    $('weeks').replaceChildren(...listed.map((week) => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'chip';
+      if (week.count < 7) {
+        chip.disabled = true;
+        chip.textContent = `${shortDate(week.start)} · ${week.missing.length} missing`;
+        chip.title = `Left out of the stats: no data for ${dayList(week.missing)}`;
+        return chip;
+      }
       chip.textContent = shortDate(week.start);
       chip.setAttribute('aria-pressed', String(!off.has(week.start)));
       chip.addEventListener('click', () => {
@@ -673,6 +706,8 @@
     });
   }
 
+  const missingNote = (week) => (week.missing.length ? ` No data for ${dayList(week.missing)} this week, so ${week.missing.length === 1 ? 'that day is' : 'those days are'} left out.` : '');
+
   function renderRoad(info) {
     const {stats, target, used} = info;
     const topDay = stats.map((day) => day.average).indexOf(Math.max(...stats.map((day) => day.average)));
@@ -695,7 +730,7 @@
       const estimate = target.values[day] * (1 + stats[day].gain);
       const low = target.values[day] * (1 + stats[day].gainLow);
       const high = target.values[day] * (1 + stats[day].gainHigh);
-      $('road-note').textContent = `This week's latest day, ${DAY_NAMES[day]}, was ${millions(target.values[day])}. Applying the average gain points to a peak near ${millions(estimate)}, with a range of ${millions(low)} to ${millions(high)} across the ${used.length === 1 ? 'week' : 'weeks'} used.`;
+      $('road-note').textContent = `This week's latest day, ${DAY_NAMES[day]}, was ${millions(target.values[day])}. Applying the average gain points to a peak near ${millions(estimate)}, with a range of ${millions(low)} to ${millions(high)} across the ${used.length === 1 ? 'week' : 'weeks'} used.${missingNote(target)}`;
     } else {
       $('road-note').textContent = 'Once the next week starts, this will estimate its peak from the latest reported day.';
     }
@@ -723,9 +758,9 @@
     }
     const shortfall = past.length < state.recent ? ` Only ${past.length} full ${past.length === 1 ? 'week is' : 'weeks are'} available.` : '';
     $('recent-note').textContent = seen.length
-      ? `Colored lines are the last full weeks, the black line is this week so far, and the dashed line is the pace-adjusted forecast for the remaining days. The forecast uses the averaging and tilt settings below.${shortfall}`
+      ? `Colored lines are the last full weeks, the black line is this week so far, and the dashed line is the pace-adjusted forecast for the remaining days. The forecast uses the averaging and tilt settings below.${missingNote(target)}${shortfall}`
       : `Colored lines are the last full weeks. This week's line appears once its Monday is reported.${shortfall}`;
-    lineChart($('c-recent'), {labels: DAYS, series, height: 320, label: 'This week against recent weeks', tipTitle: (index) => DAY_NAMES[index]});
+    lineChart($('c-recent'), {labels: DAYS, series, height: 320, label: 'This week against recent weeks', tipTitle: (index) => DAY_NAMES[index], gaps: target.missing});
   }
 
   function renderForecast(info, history, forecast) {
@@ -734,21 +769,22 @@
     $('forecast-title').textContent = `Forecast for the week of ${shortDate(target.start)}`;
     $('tilt-read').textContent = `${state.tilt.toFixed(1)}×`;
     const shortfall = history.length < state.span ? ` Only ${history.length} usable ${history.length === 1 ? 'week is' : 'weeks are'} available right now.` : '';
-    $('forecast-note').textContent = `Each newer week counts ${state.tilt.toFixed(1)} times the one before it. Weights, newest first: ${weights}.${shortfall}`;
+    const paceBasis = target.missing.length && forecast.pace ? ` Pace-adjusted uses only the days reported so far (${dayList(DAYS.map((_, day) => day).filter((day) => target.values[day] !== null))}).` : '';
+    $('forecast-note').textContent = `Each newer week counts ${state.tilt.toFixed(1)} times the one before it. Weights, newest first: ${weights}.${paceBasis}${shortfall}`;
     const series = [
       {name: 'Simple average', color: 'var(--s1)', values: forecast.simple},
       {name: 'Recent-weighted', color: 'var(--s2)', values: forecast.weighted},
     ];
     if (forecast.pace) series.push({name: 'Pace-adjusted', color: 'var(--s3)', values: forecast.pace});
     if (target.count) series.push({name: 'Actual', color: 'var(--ink)', values: target.values, line: false, dotSize: 6});
-    lineChart($('c-forecast'), {labels: DAYS, series, height: 320, label: 'Forecast for each day of this week', tipTitle: (index) => DAY_NAMES[index]});
+    lineChart($('c-forecast'), {labels: DAYS, series, height: 320, label: 'Forecast for each day of this week', tipTitle: (index) => DAY_NAMES[index], gaps: target.missing});
     const topDay = forecast.weighted.indexOf(Math.max(...forecast.weighted));
     fillRows($('forecast-body'), DAYS.map((_, day) => ({
       className: day === topDay ? 'is-peak' : '',
       tag: day === topDay ? 'Peak' : '',
       cells: [
         DAY_NAMES[day],
-        target.values[day] === null ? '—' : whole(target.values[day]),
+        target.values[day] !== null ? whole(target.values[day]) : target.missing.includes(day) ? 'No data' : '—',
         whole(forecast.simple[day]),
         whole(forecast.weighted[day]),
         forecast.pace ? whole(forecast.pace[day]) : '—',
@@ -828,7 +864,10 @@
     const dayIndex = (date) => (toDate(date).getUTCDay() + 6) % 7;
     let mondays = 0;
     const showTick = artist.days.map(({date}) => dayIndex(date) === 0 && (!narrow || mondays++ % 2 === 0));
+    const timelineGaps = artist.days.flatMap(({views}, index) => (views === null ? [index] : []));
+    $('timeline-note').textContent = `Includes all reported days, even weeks switched off above. Dashed lines mark the average of each week used.${timelineGaps.length ? ` Shaded days have no data (${timelineGaps.length} ${timelineGaps.length === 1 ? 'day' : 'days'}).` : ''}`;
     lineChart($('c-timeline'), {
+      gaps: timelineGaps,
       labels: artist.days.map(({date}) => shortDate(date)),
       height: 280,
       label: 'Every reported day',
@@ -877,10 +916,15 @@
     $('analysis').hidden = !ready;
     $('analysis').style.display = ready ? 'grid' : 'none';
     $('empty').hidden = ready;
+    const reported = artist.days.filter(({views}) => views !== null).length;
+    $('empty').textContent = info.full.length
+      ? 'Turn on at least one week above to see the analysis.'
+      : `${artist.name} has no full Monday to Sunday week yet (${reported} of ${artist.days.length} days reported), so there's nothing to analyze. It will appear here and in the comparison once a full week is in.`;
     const first = artist.days[0].date;
     const last = artist.days[artist.days.length - 1].date;
-    const skipped = info.skipped.map((week) => `${shortDate(week.start)} (${week.count} of 7 days)`).join(', ');
-    $('foot').textContent = `${artist.name} data runs ${shortDate(first)} to ${shortDate(last)}. Weekly statistics use full Monday to Sunday weeks only${skipped ? `, so these partial weeks are left out: ${skipped}` : ''}. These are YouTube Charts Global figures pasted from ChatGPT and not independently verified. A few weeks is a small sample, and a new release can break the pattern.`;
+    const gapped = info.gapWeeks.map((week) => `${shortDate(week.start)} (no data for ${dayList(week.missing)})`).join(', ');
+    const edges = info.edgeWeeks.map((week) => `${shortDate(week.start)} (${week.count} of 7 days)`).join(', ');
+    $('foot').textContent = `${artist.name} data runs ${shortDate(first)} to ${shortDate(last)}. Weekly statistics use full Monday to Sunday weeks only.${gapped ? ` Left out because of missing data: ${gapped}.` : ''}${edges ? ` Left out because the data starts or ends mid-week: ${edges}.` : ''} These are YouTube Charts Global figures pasted from ChatGPT and not independently verified. A few weeks is a small sample, and a new release can break the pattern.`;
     if (!ready) {
       $('headline').textContent = artist.name;
       $('takeaway').textContent = '';

@@ -40,6 +40,13 @@ python3 scripts/build_dashboard.py
 **Add new days for an artist.** Paste the new rows at the end of that artist's
 CSV and rebuild.
 
+**Mark a missing day.** If a day's number is missing or wrong in the source, put
+`NaN` (or leave it blank) instead of a number. The page shades that day as
+missing and leaves its week out of the weekly stats, since guessing a missing
+Friday or Saturday would mean guessing the week's peak. A date that's skipped
+entirely counts as missing too. The build lists every missing day when it
+finishes.
+
 **Change the page.** Edit `dashboard/template.html` and rebuild. Changes made
 directly to `index.html` are overwritten on the next build.
 

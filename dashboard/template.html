@@ -58,6 +58,7 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { background: transparent; border: 1px solid var(--axis); border-radius: 999px; padding: 3px 11px; cursor: pointer; color: var(--ink-3); text-decoration: line-through; }
   .chip[aria-pressed="true"] { background: var(--pill); border-color: var(--s1); color: var(--ink); text-decoration: none; }
+  .chip:disabled { cursor: default; border-style: dashed; text-decoration: none; }
   :focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 
   main { display: grid; gap: 20px; padding-block: 20px 40px; }
@@ -258,7 +259,7 @@
 
       <section class="card">
         <h3>Every day in the data</h3>
-        <p class="note">Includes all reported days, even weeks switched off above. Dashed lines mark the average of each week used.</p>
+        <p class="note" id="timeline-note">Includes all reported days, even weeks switched off above. Dashed lines mark the average of each week used.</p>
         <div class="chart" id="c-timeline"></div>
       </section>
 
@@ -293,6 +294,10 @@
   const DAY_MS = 86400000;
   const SLOTS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'].map((name) => `var(${name})`);
   const artists = JSON.parse(document.getElementById('artist-data').textContent);
+  // A missing day (NaN or blank in the CSV) arrives as null. Anything else that isn't a number is treated the same way.
+  artists.forEach((artist) => artist.days.forEach((day) => {
+    if (!Number.isFinite(day.views)) day.views = null;
+  }));
   const state = {slug: artists[0].slug, off: {}, span: 3, tilt: 1.5, recent: 3};
 
   const $ = (id) => document.getElementById(id);
@@ -302,6 +307,7 @@
     return values.length < 2 ? 0 : Math.sqrt(values.reduce((sum, value) => sum + (value - center) ** 2, 0) / (values.length - 1));
   };
   const known = (values) => values.filter((value) => value !== null);
+  const dayList = (indexes) => indexes.map((day) => DAYS[day]).join(', ');
   const toDate = (day) => new Date(`${day}T00:00:00Z`);
   const toIso = (date) => date.toISOString().slice(0, 10);
   const addDays = (day, count) => toIso(new Date(toDate(day).getTime() + count * DAY_MS));
@@ -316,8 +322,10 @@
     days.forEach(({date, views}) => {
       const index = (toDate(date).getUTCDay() + 6) % 7;
       const start = addDays(date, -index);
-      if (!weeks.has(start)) weeks.set(start, {start, values: Array(7).fill(null)});
-      weeks.get(start).values[index] = views;
+      if (!weeks.has(start)) weeks.set(start, {start, values: Array(7).fill(null), missing: []});
+      const week = weeks.get(start);
+      if (views === null) week.missing.push(index);
+      else week.values[index] = views;
     });
     return [...weeks.values()].sort((a, b) => a.start.localeCompare(b.start)).map((week) => {
       const count = known(week.values).length;
@@ -390,9 +398,14 @@
     const full = weeks.filter((week) => week.count === 7);
     const used = full.filter((week) => !off.has(week.start));
     const last = weeks[weeks.length - 1];
-    const target = last.count < 7 ? last : {start: addDays(last.start, 7), values: Array(7).fill(null), count: 0};
+    // The last week is still in progress only if its Sunday isn't in the data yet. A finished week with missing days is a gap week, not this week.
+    const lastDate = artist.days[artist.days.length - 1].date;
+    const inProgress = last.count < 7 && lastDate < addDays(last.start, 6);
+    const target = inProgress ? last : {start: addDays(last.start, 7), values: Array(7).fill(null), missing: [], count: 0};
     const skipped = weeks.filter((week) => week.count < 7 && week.start !== target.start);
-    return {artist, weeks, full, used, target, skipped, stats: used.length ? dayStats(used) : null};
+    const gapWeeks = skipped.filter((week) => week.missing.length);
+    const edgeWeeks = skipped.filter((week) => !week.missing.length);
+    return {artist, weeks, full, used, target, gapWeeks, edgeWeeks, stats: used.length ? dayStats(used) : null};
   }
 
   function niceTicks(low, high, count) {
@@ -476,12 +489,16 @@
   }
 
   function lineChart(el, options) {
-    const {labels, series, height = 300, label, format = millions, axisFormat = format, tickFilter = () => true, tipTitle = (index) => labels[index]} = options;
+    const {labels, series, height = 300, label, format = millions, axisFormat = format, tickFilter = () => true, tipTitle = (index) => labels[index], gaps = []} = options;
     const chart = startChart(el, height, label);
     const legendItems = series.filter((item) => item.legend !== false).map((item) => ({name: item.name, color: item.color, kind: item.dashed ? 'dash' : item.line === false ? 'dot' : ''}));
     if (legendItems.length > 1) addLegend(chart, legendItems);
 
     const values = series.flatMap((item) => known(item.values));
+    if (!values.length) {
+      shape(chart.svg, 'text', {x: chart.width / 2, y: height / 2, 'text-anchor': 'middle'}, 'No data to show');
+      return;
+    }
     const ticks = niceTicks(Math.min(...values), Math.max(...values), 5);
     const margin = {top: 20, right: 14, bottom: 26};
     const probe = shape(chart.svg, 'text');
@@ -505,6 +522,14 @@
     });
     labels.forEach((text, index) => {
       if (tickFilter(index)) shape(chart.svg, 'text', {x: x(index), y: height - 8, 'text-anchor': 'middle'}, text);
+    });
+
+    // Shade days with no data so a break in the line reads as a blip, not a drop.
+    const step = labels.length > 1 ? x(1) - x(0) : plotRight - margin.left;
+    gaps.forEach((index) => {
+      const left = Math.max(margin.left, x(index) - step / 2);
+      const right = Math.min(plotRight, x(index) + step / 2);
+      shape(chart.svg, 'rect', {x: left, y: margin.top, width: right - left, height: plotBottom - margin.top, style: 'fill: var(--mid)'});
     });
 
     series.forEach((item) => {
@@ -547,6 +572,7 @@
       rule.setAttribute('visibility', 'visible');
       const rows = series.filter((item) => (item.tipValues ?? item.values)[nearest] !== null && item.tip !== false)
         .map((item) => ({name: item.name, color: item.color, value: format((item.tipValues ?? item.values)[nearest])}));
+      if (gaps.includes(nearest)) rows.unshift({name: 'No data for this day', value: '—'});
       showTip(chart, event, tipTitle(nearest), rows);
     };
     hit.addEventListener('pointermove', hover);
@@ -604,10 +630,17 @@
 
   function renderWeekChips(info) {
     const off = state.off[info.artist.slug] ?? new Set();
-    $('weeks').replaceChildren(...info.full.map((week) => {
+    const listed = [...info.full, ...info.gapWeeks].sort((a, b) => a.start.localeCompare(b.start));
+    $('weeks').replaceChildren(...listed.map((week) => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'chip';
+      if (week.count < 7) {
+        chip.disabled = true;
+        chip.textContent = `${shortDate(week.start)} · ${week.missing.length} missing`;
+        chip.title = `Left out of the stats: no data for ${dayList(week.missing)}`;
+        return chip;
+      }
       chip.textContent = shortDate(week.start);
       chip.setAttribute('aria-pressed', String(!off.has(week.start)));
       chip.addEventListener('click', () => {
@@ -665,6 +698,8 @@
     });
   }
 
+  const missingNote = (week) => (week.missing.length ? ` No data for ${dayList(week.missing)} this week, so ${week.missing.length === 1 ? 'that day is' : 'those days are'} left out.` : '');
+
   function renderRoad(info) {
     const {stats, target, used} = info;
     const topDay = stats.map((day) => day.average).indexOf(Math.max(...stats.map((day) => day.average)));
@@ -687,7 +722,7 @@
       const estimate = target.values[day] * (1 + stats[day].gain);
       const low = target.values[day] * (1 + stats[day].gainLow);
       const high = target.values[day] * (1 + stats[day].gainHigh);
-      $('road-note').textContent = `This week's latest day, ${DAY_NAMES[day]}, was ${millions(target.values[day])}. Applying the average gain points to a peak near ${millions(estimate)}, with a range of ${millions(low)} to ${millions(high)} across the ${used.length === 1 ? 'week' : 'weeks'} used.`;
+      $('road-note').textContent = `This week's latest day, ${DAY_NAMES[day]}, was ${millions(target.values[day])}. Applying the average gain points to a peak near ${millions(estimate)}, with a range of ${millions(low)} to ${millions(high)} across the ${used.length === 1 ? 'week' : 'weeks'} used.${missingNote(target)}`;
     } else {
       $('road-note').textContent = 'Once the next week starts, this will estimate its peak from the latest reported day.';
     }
@@ -715,9 +750,9 @@
     }
     const shortfall = past.length < state.recent ? ` Only ${past.length} full ${past.length === 1 ? 'week is' : 'weeks are'} available.` : '';
     $('recent-note').textContent = seen.length
-      ? `Colored lines are the last full weeks, the black line is this week so far, and the dashed line is the pace-adjusted forecast for the remaining days. The forecast uses the averaging and tilt settings below.${shortfall}`
+      ? `Colored lines are the last full weeks, the black line is this week so far, and the dashed line is the pace-adjusted forecast for the remaining days. The forecast uses the averaging and tilt settings below.${missingNote(target)}${shortfall}`
       : `Colored lines are the last full weeks. This week's line appears once its Monday is reported.${shortfall}`;
-    lineChart($('c-recent'), {labels: DAYS, series, height: 320, label: 'This week against recent weeks', tipTitle: (index) => DAY_NAMES[index]});
+    lineChart($('c-recent'), {labels: DAYS, series, height: 320, label: 'This week against recent weeks', tipTitle: (index) => DAY_NAMES[index], gaps: target.missing});
   }
 
   function renderForecast(info, history, forecast) {
@@ -726,21 +761,22 @@
     $('forecast-title').textContent = `Forecast for the week of ${shortDate(target.start)}`;
     $('tilt-read').textContent = `${state.tilt.toFixed(1)}×`;
     const shortfall = history.length < state.span ? ` Only ${history.length} usable ${history.length === 1 ? 'week is' : 'weeks are'} available right now.` : '';
-    $('forecast-note').textContent = `Each newer week counts ${state.tilt.toFixed(1)} times the one before it. Weights, newest first: ${weights}.${shortfall}`;
+    const paceBasis = target.missing.length && forecast.pace ? ` Pace-adjusted uses only the days reported so far (${dayList(DAYS.map((_, day) => day).filter((day) => target.values[day] !== null))}).` : '';
+    $('forecast-note').textContent = `Each newer week counts ${state.tilt.toFixed(1)} times the one before it. Weights, newest first: ${weights}.${paceBasis}${shortfall}`;
     const series = [
       {name: 'Simple average', color: 'var(--s1)', values: forecast.simple},
       {name: 'Recent-weighted', color: 'var(--s2)', values: forecast.weighted},
     ];
     if (forecast.pace) series.push({name: 'Pace-adjusted', color: 'var(--s3)', values: forecast.pace});
     if (target.count) series.push({name: 'Actual', color: 'var(--ink)', values: target.values, line: false, dotSize: 6});
-    lineChart($('c-forecast'), {labels: DAYS, series, height: 320, label: 'Forecast for each day of this week', tipTitle: (index) => DAY_NAMES[index]});
+    lineChart($('c-forecast'), {labels: DAYS, series, height: 320, label: 'Forecast for each day of this week', tipTitle: (index) => DAY_NAMES[index], gaps: target.missing});
     const topDay = forecast.weighted.indexOf(Math.max(...forecast.weighted));
     fillRows($('forecast-body'), DAYS.map((_, day) => ({
       className: day === topDay ? 'is-peak' : '',
       tag: day === topDay ? 'Peak' : '',
       cells: [
         DAY_NAMES[day],
-        target.values[day] === null ? '—' : whole(target.values[day]),
+        target.values[day] !== null ? whole(target.values[day]) : target.missing.includes(day) ? 'No data' : '—',
         whole(forecast.simple[day]),
         whole(forecast.weighted[day]),
         forecast.pace ? whole(forecast.pace[day]) : '—',
@@ -820,7 +856,10 @@
     const dayIndex = (date) => (toDate(date).getUTCDay() + 6) % 7;
     let mondays = 0;
     const showTick = artist.days.map(({date}) => dayIndex(date) === 0 && (!narrow || mondays++ % 2 === 0));
+    const timelineGaps = artist.days.flatMap(({views}, index) => (views === null ? [index] : []));
+    $('timeline-note').textContent = `Includes all reported days, even weeks switched off above. Dashed lines mark the average of each week used.${timelineGaps.length ? ` Shaded days have no data (${timelineGaps.length} ${timelineGaps.length === 1 ? 'day' : 'days'}).` : ''}`;
     lineChart($('c-timeline'), {
+      gaps: timelineGaps,
       labels: artist.days.map(({date}) => shortDate(date)),
       height: 280,
       label: 'Every reported day',
@@ -869,10 +908,15 @@
     $('analysis').hidden = !ready;
     $('analysis').style.display = ready ? 'grid' : 'none';
     $('empty').hidden = ready;
+    const reported = artist.days.filter(({views}) => views !== null).length;
+    $('empty').textContent = info.full.length
+      ? 'Turn on at least one week above to see the analysis.'
+      : `${artist.name} has no full Monday to Sunday week yet (${reported} of ${artist.days.length} days reported), so there's nothing to analyze. It will appear here and in the comparison once a full week is in.`;
     const first = artist.days[0].date;
     const last = artist.days[artist.days.length - 1].date;
-    const skipped = info.skipped.map((week) => `${shortDate(week.start)} (${week.count} of 7 days)`).join(', ');
-    $('foot').textContent = `${artist.name} data runs ${shortDate(first)} to ${shortDate(last)}. Weekly statistics use full Monday to Sunday weeks only${skipped ? `, so these partial weeks are left out: ${skipped}` : ''}. These are YouTube Charts Global figures pasted from ChatGPT and not independently verified. A few weeks is a small sample, and a new release can break the pattern.`;
+    const gapped = info.gapWeeks.map((week) => `${shortDate(week.start)} (no data for ${dayList(week.missing)})`).join(', ');
+    const edges = info.edgeWeeks.map((week) => `${shortDate(week.start)} (${week.count} of 7 days)`).join(', ');
+    $('foot').textContent = `${artist.name} data runs ${shortDate(first)} to ${shortDate(last)}. Weekly statistics use full Monday to Sunday weeks only.${gapped ? ` Left out because of missing data: ${gapped}.` : ''}${edges ? ` Left out because the data starts or ends mid-week: ${edges}.` : ''} These are YouTube Charts Global figures pasted from ChatGPT and not independently verified. A few weeks is a small sample, and a new release can break the pattern.`;
     if (!ready) {
       $('headline').textContent = artist.name;
       $('takeaway').textContent = '';

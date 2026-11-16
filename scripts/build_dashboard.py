@@ -7,6 +7,7 @@ file name becomes the display name, so bad_bunny.csv shows as "Bad Bunny".
 import argparse
 import csv
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,10 @@ OUTPUT = ROOT / "dashboard" / "index.html"
 
 # Only needed when title case gets a name wrong, such as {"sza": "SZA"}.
 DISPLAY_NAMES = {}
+
+# Cells that mean "no data for this day", such as a blip in the source. They
+# become null on the page, which leaves the day out instead of guessing it.
+MISSING = {"", "nan", "null", "none", "na", "n/a", "-"}
 
 PAGE_START = """<!doctype html>
 <html lang="en">
@@ -29,19 +34,47 @@ PAGE_START = """<!doctype html>
 PAGE_END = "</body>\n</html>\n"
 
 
+def parse_views(raw, path, line):
+    text = (raw or "").strip()
+    if text.lower() in MISSING:
+        return None
+    try:
+        return int(text.replace(",", ""))
+    except ValueError:
+        raise SystemExit(f"{path.name} line {line}: {raw!r} isn't a whole number or a missing-value marker such as NaN.")
+
+
 def read_artist(path):
     slug = path.stem
+    views_by_date = {}
     with path.open(newline="", encoding="utf-8") as csv_file:
-        days = [
-            {"date": row["date"], "views": int(row["global_views"])}
-            for row in csv.DictReader(csv_file)
-        ]
-    days.sort(key=lambda day: day["date"])
+        for line, row in enumerate(csv.DictReader(csv_file), start=2):
+            views_by_date[row["date"].strip()] = parse_views(row["global_views"], path, line)
+
+    if not views_by_date:
+        raise SystemExit(f"{path.name} has no rows. Add data or remove the file.")
+
+    # Every calendar day from first to last gets an entry, so a date that was
+    # never pasted in counts as missing just like a NaN row.
+    first = date.fromisoformat(min(views_by_date))
+    last = date.fromisoformat(max(views_by_date))
+    days = []
+    for offset in range((last - first).days + 1):
+        day = (first + timedelta(days=offset)).isoformat()
+        days.append({"date": day, "views": views_by_date.get(day)})
     return {
         "slug": slug,
         "name": DISPLAY_NAMES.get(slug, slug.replace("_", " ").title()),
         "days": days,
     }
+
+
+def missing_summary(artist):
+    missing = [day["date"] for day in artist["days"] if day["views"] is None]
+    if not missing:
+        return None
+    dates = ", ".join(f"{day:%b} {day.day}" for day in map(date.fromisoformat, missing))
+    return f"  {artist['name']}: {len(missing)} missing {'day' if len(missing) == 1 else 'days'} ({dates})"
 
 
 def main():
@@ -65,6 +98,10 @@ def main():
 
     names = ", ".join(artist["name"] for artist in artists)
     print(f"Saved {OUTPUT.relative_to(ROOT)} with {len(artists)} artists: {names}")
+    gaps = [line for line in map(missing_summary, artists) if line]
+    if gaps:
+        print("Missing days, left out of the weekly stats:")
+        print("\n".join(gaps))
 
 
 if __name__ == "__main__":
